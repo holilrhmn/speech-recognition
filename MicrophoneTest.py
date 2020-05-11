@@ -95,7 +95,7 @@ frames = []
 
 word_list = [ "textbook" , "shoes" , "map" , "cell_phone" ,"ball" , "violin" , "computer"] # , "forward" ]
 
-hmm_list = pickle.load ( open ( 'Trainer/TrainedHmms.hmm' , 'rb'))
+hmm_list = pickle.load ( open ( 'Trainer/TrainedHmmsPreprocessing.hmm' , 'rb'))
 scalers = pickle.load(open("Trainer/ScalersPreprocessing.scl", 'rb'))
 
 
