@@ -1,3 +1,4 @@
+import speech_recognition as sr
 import pygame
 import pickle
 import pyaudio
@@ -29,26 +30,29 @@ from hmmlearn import hmm
 import numpy as np
 import matplotlib.pyplot as plt
 
-def get_feature_vector ( sample , hmm_list ):
+
+def get_feature_vector(sample, hmm_list):
     global word_list
     result = {}
     smallest = 0
     total = 0
     for word in word_list:
         data_ = scalers[word].transform(sample)
-        result  [ word ] = hmm_list.get ( word ).score ( data_ )
-        total += result [ word ]
-        #we are getting the smallest number, later we will normalize the feature vector...
-        if smallest > result[ word ]:
-            smallest = result[ word ]
+        result[word] = hmm_list.get(word).score(data_)
+        total += result[word]
+        # we are getting the smallest number, later we will normalize the feature vector...
+        if smallest > result[word]:
+            smallest = result[word]
 
-    average = total / len ( word_list )
+    average = total / len(word_list)
 
-    feature_vector = [ result[ word ]   for word in word_list    ]
-    return [ result [ word ] - average for word in word_list ]
+    feature_vector = [result[word] for word in word_list]
+    return [result[word] - average for word in word_list]
 
-trained = pickle.load ( open ( 'NNTrainer/neurospeech.nn' , 'rb'))
+
+trained = pickle.load(open('NNTrainer/neurospeech.nn', 'rb'))
 nn_scaler = pickle.load(open("NNTrainer/neurospeechscaler.scl", 'rb'))
+
 
 def test(sample, hmm_list):
     global word_list, window
@@ -56,36 +60,36 @@ def test(sample, hmm_list):
 
     for word in word_list:
         data_ = scalers[word].transform(sample)
-        result  [ word ] = hmm_list.get ( word ).score ( data_ )
+        result[word] = hmm_list.get(word).score(data_)
 
-    label = word_list [ 0 ]
-    en_buyuk = result [ word_list [ 0 ] ]
-    for i in range ( 1 , len ( word_list ) ):
-        if result [ word_list [ i ]  ] > en_buyuk:
-            en_buyuk = result [ word_list [ i ] ]
-            label = word_list  [ i ]
+    label = word_list[0]
+    en_buyuk = result[word_list[0]]
+    for i in range(1, len(word_list)):
+        if result[word_list[i]] > en_buyuk:
+            en_buyuk = result[word_list[i]]
+            label = word_list[i]
 
-    print ("Result : ", result)
+    print("Result : ", result)
     return label
+
 
 max_number = 0
 sound_file_index = 0
-import os
 file_list = os.listdir("recordings")
-if len ( file_list ) == 0:
+if len(file_list) == 0:
     sound_file_index = 0
 else:
     for file in file_list:
-        tokens = file.split( "." )
-        file_number = int ( tokens[0] [ 5: ] )
+        tokens = file.split(".")
+        file_number = int(tokens[0][5:])
         if file_number > max_number:
-            max_number  = file_number
+            max_number = file_number
 
-sound_file_index = max_number +1
+sound_file_index = max_number + 1
 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
-RATE = 44100
+RATE = 32000
 CHUNK = 1024
 
 audio = pyaudio.PyAudio()
@@ -93,9 +97,10 @@ stream = None
 
 frames = []
 
-word_list = [ "textbook" , "shoes" , "map" , "cell_phone" ,"ball" , "violin" , "computer"] # , "forward" ]
+word_list = ["satu", "dua", "tiga", "empat",
+             "lima", "nol"]  # , "forward" ]
 
-hmm_list = pickle.load ( open ( 'Trainer/TrainedHmmsPreprocessing.hmm' , 'rb'))
+hmm_list = pickle.load(open('Trainer/TrainedHmmsPreprocessing.hmm', 'rb'))
 scalers = pickle.load(open("Trainer/ScalersPreprocessing.scl", 'rb'))
 
 
@@ -104,20 +109,19 @@ stream = audio.open(format=FORMAT, channels=CHANNELS,
                     frames_per_buffer=CHUNK)
 record = False
 
-import speech_recognition as sr
 
 # Record Audio
 r = sr.Recognizer()
 
-print ( "Stream ready..." )
+print("Stream ready...")
 pygame.init()
-window = pygame.display.set_mode ( ( 300 , 300 ) )
+window = pygame.display.set_mode((300, 300))
 pygame.display.set_caption('Press a and speak and release the key')
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             stream.close()
-            pygame.quit();  # sys.exit() if sys is imported
+            pygame.quit()  # sys.exit() if sys is imported
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
@@ -125,7 +129,7 @@ while True:
                 if record == False:
                     frames = []
 
-                    print ( "Please speak" )
+                    print("Please speak")
                     stream.start_stream()
 
                     record = True
@@ -134,29 +138,30 @@ while True:
                 if stream is not None:
                     stream.close()
                 pygame.quit()
-                exit ( 0 )
+                exit(0)
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
-                print ( "Key a has been released..." )
+                print("Key a has been released...")
 
                 record = False
                 stream.stop_stream()
 
                 dat = b''.join(frames)
-                audio_data = sr.AudioData(dat , 44100, 2)
+                audio_data = sr.AudioData(dat, 44100, 2)
                 try:
                     google_result = r.recognize_google(audio_data)
                 except Exception:
                     google_result = "Error"
 
-                waveFile = wave.open(  "sound.wav" , 'wb')
+                waveFile = wave.open("sound.wav", 'wb')
                 waveFile.setnchannels(CHANNELS)
                 waveFile.setsampwidth(audio.get_sample_size(FORMAT))
                 waveFile.setframerate(RATE)
                 waveFile.writeframes(dat)
                 waveFile.close()
 
-                waveFile = wave.open("recordings/sound"+ str ( sound_file_index )  +".wav", 'wb')
+                waveFile = wave.open("recordings/sound" +
+                                     str(sound_file_index) + ".wav", 'wb')
                 waveFile.setnchannels(CHANNELS)
                 waveFile.setsampwidth(audio.get_sample_size(FORMAT))
                 waveFile.setframerate(RATE)
@@ -181,7 +186,8 @@ while True:
                 new = song.low_pass_filter(5000)
 
                 song.export("filtered-talk.wav", format="wav")
-                audio3 = AudioSegment.from_file("filtered-talk.wav", format="wav", frame_rate=44100)
+                audio3 = AudioSegment.from_file(
+                    "filtered-talk.wav", format="wav", frame_rate=32000)
                 audio3 = audio3.set_frame_rate(16000)
                 audio3.export("filtered-talk1.wav", format="wav")
 
@@ -191,7 +197,7 @@ while True:
                                                 min_silence_len=200,
 
                                                 # consider it silent if quieter than -16 dBFS
-                                                silence_thresh=-16                                                )
+                                                silence_thresh=-16)
 
                 count = 0
 
@@ -200,21 +206,19 @@ while True:
                 for i, chunk in enumerate(audio_chunks):
                     count += 1
 
-
                     # print "i : " , i , " chunk duration : " , chunk.duration_seconds
-                    #if chunk.duration_seconds < 0.200:
-                        #continue
+                    # if chunk.duration_seconds < 0.200:
+                    # continue
                     # print ( "Audio chunk" , chunk.duration_seconds )
-
 
                     # chunk.export( out_file , format="wav" )
 
                     chunk.export("temp" + str(i) + ".wav", format="wav")
                     w = wave.open("temp" + str(i) + ".wav", 'rb')
-                    data_.append( w.readframes(w.getnframes()))
+                    data_.append(w.readframes(w.getnframes()))
                     w.close()
-                print ( "Count : " , count )
-                if count >  0 :
+                print("Count : ", count)
+                if count > 0:
                     #print ( "ifteyiz")
 
                     try:
@@ -227,15 +231,15 @@ while True:
                         output.setnchannels(CHANNELS)
                         output.writeframes(b''.join(data_))
 
-                        #output.setparams(data[0][0])
-                        #output.writeframes(data[0])
+                        # output.setparams(data[0][0])
+                        # output.writeframes(data[0])
 
                         output.close()
-                        print ( "Dosya yazildi..")
+                        print("Dosya yazildi..")
                         #(rate, sig) = wav.read("temp" + str( 0 ) + ".wav")
-                        (rate, sig) = wav.read( "com.wav" )
+                        (rate, sig) = wav.read("com.wav")
 
-                        #(rate, sig) = RATE , mic_sig # wav.read ( "sound.wav" )
+                        # (rate, sig) = RATE , mic_sig # wav.read ( "sound.wav" )
 
                         mfcc_feat = mfcc(sig, rate, nfft=1536)
                         d_mfcc_feat = delta(mfcc_feat, 2)
@@ -253,25 +257,27 @@ while True:
                         print("Individual HMM prediction : ", label)
                         label = predicted[0]
 
-                        object_image = pygame.image.load("images/"+label + ".png")
-                        window = pygame.display.set_mode((object_image.get_width(), object_image.get_height()), 0, 32)
+                        object_image = pygame.image.load(
+                            "images/"+label + ".png")
+                        window = pygame.display.set_mode(
+                            (object_image.get_width(), object_image.get_height()), 0, 32)
 
-                        print ( "Our speech recognition (nn) result : " , label )
-                        print ( "Google speech recognition result : " , google_result )
+                        print("Our speech recognition (nn) result : ", label)
+                        print("Google speech recognition result : ", google_result)
 
                         window.blit(object_image, (0, 0))
                         pygame.display.update()
-                        if label =="cell_phone":label="cell phone"
-                        print ("type : ", type(predicted[0]))
-                        print ("Neural Res : ", str(predicted[0]))
+                        if label == "cell_phone":
+                            label = "cell phone"
+                        print("type : ", type(predicted[0]))
+                        print("Neural Res : ", str(predicted[0]))
 
-                        print ("Prediction ", trained.predict_proba(vector))
+                        print("Prediction ", trained.predict_proba(vector))
 
                     except UnicodeEncodeError as err:
-                        print ( "Err : " , err  )
+                        print("Err : ", err)
                 else:
-                    print ( "No recognition..." )
-
+                    print("No recognition...")
 
     if record == True:
         data = stream.read(CHUNK)

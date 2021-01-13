@@ -1,3 +1,4 @@
+from pydub import AudioSegment
 from sklearn import neural_network
 import numpy as np
 import random
@@ -16,7 +17,9 @@ import scipy.io.wavfile as wav
 from sklearn.preprocessing import StandardScaler
 
 print(os.getcwd())
-def get_score_vector ( sample , hmm_list ):
+
+
+def get_score_vector(sample, hmm_list):
     global word_list
     # print("Sample : ", sample.shape)
     # print("Sample : len : ", len(sample))
@@ -27,42 +30,43 @@ def get_score_vector ( sample , hmm_list ):
 
     for word in word_list:
         # print("word : ", word)
-        result  [ word ] = hmm_list.get ( word ).score ( sample, lengths=[len(sample)])
+        result[word] = hmm_list.get(word).score(sample, lengths=[len(sample)])
         # print("result : ", result[word])
-        total += result [ word ]
+        total += result[word]
 
-    average = total / len ( word_list )
-    feature_vector = [ result[ word ]   for word in word_list    ]
+    average = total / len(word_list)
+    feature_vector = [result[word] for word in word_list]
     # combine each hmm's score for the word, subtract the average score...
-    combined = [ result [ word ] - average for word in word_list ]
+    combined = [result[word] - average for word in word_list]
     # print(combined)
     return combined
 
 
-word_list = ["shoes" ,"textbook","map" , "cell_phone" , "violin" , "ball" , "computer"] # , "forward" ]
-print(os.listdir("../"))
-hmm_list = pickle.load ( open ( '../Trainer/TrainedHmmsPreprocessing.hmm' , 'rb'))
-scalers = pickle.load(open("../Trainer/ScalersPreprocessing.scl", 'rb'))
+word_list = ["satu", "dua", "tiga", "empat",
+             "lima", "nol"]  # , "forward" ]
+print(os.listdir("./images"))
+hmm_list = pickle.load(open('./Trainer/TrainedHmmsPreprocessing.hmm', 'rb'))
+scalers = pickle.load(open("./Trainer/ScalersPreprocessing.scl", 'rb'))
 
-network = neural_network.MLPClassifier(tol=1e-7, verbose=1000, learning_rate_init=.040, solver="adam", max_iter = 1500, hidden_layer_sizes=(705, 700))
+network = neural_network.MLPClassifier(
+    tol=1e-7, verbose=1000, learning_rate_init=.040, solver="adam", max_iter=2000, hidden_layer_sizes=(705, 700))
 
-nfft=1536
+nfft = 1536
 X = []
 Y = []
 
-from pydub import AudioSegment
-ses_yol = "../data/voicebank/"
+ses_yol = "./data/voicebank/"
 
-import os
 
 for word in word_list:
 
     file_list = os.listdir(ses_yol + word)
     for i in file_list:
-        print ("File : " + ses_yol + word + "/" + i)
+        print("File : " + ses_yol + word + "/" + i)
 
         # song.export("filtered-talk.wav", format="wav")
-        audio = AudioSegment.from_file(ses_yol + word + "/" + i, format="wav", frame_rate=44100)
+        audio = AudioSegment.from_file(
+            ses_yol + word + "/" + i, format="wav", frame_rate=32000)
         audio = audio.set_frame_rate(16000)
         audio.export("filtered-talk1.wav", format="wav")
 
@@ -80,19 +84,19 @@ for word in word_list:
         vector = get_score_vector(data, hmm_list)
         #print ( "vector : " , vector )
 
-        X.append( vector )
-        Y.append ( word )
+        X.append(vector)
+        Y.append(word)
 
 scaler = StandardScaler()
 scaler.fit(X)
 X = scaler.transform(X)
 pickle.dump(scaler, open("neurospeechscaler.scl", "wb"))
 
-trained = network.fit ( X , Y )
-print ("network train edildi...")
+trained = network.fit(X, Y)
+print("network train edildi...")
 
-pickle.dump ( trained , open ( "neurospeech.nn" , "wb"))
+pickle.dump(trained, open("neurospeech.nn", "wb"))
 
-print ("Neural network has been saved....")
+print("Neural network has been saved....")
 
-print ("Program has finished...")
+print("Program has finished...")
